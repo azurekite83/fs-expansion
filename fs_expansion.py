@@ -7,7 +7,23 @@ import sys, os, argparse
 #   -shrink or grow partition
 #   -backup before action
 
-def main(args):
+def parse_arguments(args):
+    parser = argparse.ArgumentParser(description="A wrapper around bash scripts to simplify partition changes")
+    parser.add_argument("partition", help="Ex. /dev/sda{1-5} or /dev/mapper/")
+    parser.add_argument("--backup", "-b", action="store_true", help="Directory to store backup to.")
+
+
+    size_changes = parser.add_argument_group("CHANGING PARTITION SIZE")
+
+    size_change_group = size_changes.add_mutually_exclusive_group(required=True)
+    size_change_group.add_argument("--grow", help="--grow <size>{M, G}", type=str, metavar="<size>")
+    size_change_group.add_argument("--shrink", help="--shrink <size>{M, G}", type=str, metavar="<size>")
+   
+    
+    argument_list = parser.parse_args(args[1:])
+    return argument_list
+
+def main():
     uid = os.getuid()
 
     #First, check if running as root
@@ -15,21 +31,13 @@ def main(args):
         print("This program needs elevated privileges, run as root.")
         exit(1)
     
-    backup = False
-    shrink = False
-    grow = False
-    lvm = False
-    physical = False
+    argument_list = parse_arguments(sys.argv)
+    
+    partition = argument_list.partition
+    backup = argument_list.backup
+    partition_increase = argument_list.grow
+    partition_decrease = argument_list.shrink
 
-    parser = argparse.ArgumentParser(description="A wrapper around bash scripts to simplify partition changes")
-    parser.add_argument("partition", type=str, help="Ex. /dev/sda or /dev/mapper/")
-    parser.add_argument("size", type=int, help="Size to shrink/grow partition when specifying --shrink/--grow flag")
-
-    parser.add_argument("--backup", action="store_true")
-    parser.add_argument("--action", choices=["grow", "shrink"], required=True)
-    parser.add_argument("--type", choices=["lvm", "physical"], required=True)
-
-    parser.parse_args(args)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()

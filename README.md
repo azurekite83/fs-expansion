@@ -1,2 +1,2 @@
 # fs-expansion
-Script for better automation for linux filesystem expansions
+Script that automates using bash partitioning commands into something simpler.

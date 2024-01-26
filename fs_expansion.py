@@ -92,13 +92,32 @@ def install_binary(binary):
         distro_id = lsb_output.stdout.lower().removeprefix("distributor id:").strip()
 
         commands = fetch_commands(distro_id)
-        package_retrieval_result = retrieve_packages(commands, binary)
+        package_retrieval = retrieve_packages(commands, binary)
         
-        if package_retrieval_result == False:
+        if package_retrieval == False:
+            exit(1)
+    else:
+        #If lsb_release doesn't exist
+        #Only need os-release to determine distro
+
+        if path.exists("/etc/os-release"):
+            distro_id = None
+
+            with open("/etc/os-release", "r") as os_info:
+                for line in os_info:
+                    if "ID=" in line:
+                        distro_id = line.removeprefix("ID=").strip()
+                        break
+
+            commands = fetch_commands(distro_id)
+            package_retrieval = retrieve_packages(commands, binary)
+            if package_retrieval == False:
+                exit(1)
+
+        else:
+            print("Unable to identify distro, aborting...")
             exit(1)
 
-        
-   #After package manager is detected run command
 def run(arguments):
     print(arguments)
 
@@ -131,7 +150,6 @@ def main():
 
         if necessary_binaries[binary] == False:
            install_binary(binary)
-           necessary_binaries[binary] = True
 
     run([partition, backup, partition_increase, partition_decrease])
     

@@ -119,7 +119,7 @@ def install_binary(binary):
             exit(1)
 
 def run(arguments):
-    print(arguments)
+    #Continue further development on local computer
 
 def main():
     uid = os.getuid()
@@ -151,7 +151,9 @@ def main():
         if necessary_binaries[binary] == False:
            install_binary(binary)
 
-    run([partition, backup, partition_increase, partition_decrease])
+    arguments_to_run = {"partition": partition, "backup": backup, "grow": partition_increase, "shrink": partition_decrease} 
+
+    run(arguments_to_run)
     
 if __name__ == "__main__":
     main()

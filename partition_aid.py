@@ -42,11 +42,20 @@ def retrieve_packages(command_list, package_to_retrieve):
         second_command = command_list[1].split()
         second_command.append(package_to_retrieve)
 
-        if subprocess.run(first_command).returncode != 0:
-            print("First package manager failed, trying alternate...")
-            if subprocess.run(second_command).returncode != 0:
-                print("Package retrieval failed, aborting...")
-                return False
+        with subprocess.run(first_command, capture_output=True, text=True) as status_one:
+            if status_one.returncode != 0:
+                print(status_one.stderr)
+                print("Trying different command...")
+
+                with subprocess.run(second_command, capture_output=True, text=True) as status_two:
+                    if status_two.returncode != 0:
+                        print(status_two.stderr)
+                        print("Package retrieval failed, aborting...")
+                        return False
+
+            else:
+                return True
+
     elif len(command_list) == 1:
         command = command_list[0].split()
         command.append(package_to_retrieve)
@@ -119,7 +128,48 @@ def install_binary(binary):
             exit(1)
 
 def run(arguments):
-    #Continue further development on local computer
+    #find what partitions mount point is
+    #Initially I thought that umount syntax
+    #required you to provide the mountpoint to unmount
+    #
+    #I was mistaken. I don't feel like deleting this code though.
+
+    lsblk_results = subprocess.run(["lsblk"], capture_output=True, text=True).stdout.splitlines()
+    row_data = [line.split() for line in lsblk_results]
+
+    partition = arguments["partition"].removeprefix("/dev/")
+    selected_mountpoints = []
+
+    for row in row_data:
+        if len(row) < 7:
+            selected_mountpoints.append([row[0], None])
+        else:
+            selected_mountpoints.append([row[0], row[6]])
+
+    #umount partition
+    #To remember for when we remount
+    mountpoint_of_partition = None
+
+    for row in selected_mountpoints:
+        if arguments["partition"] in row[0] and row[6] != None:
+            mountpoint_of_partition = row[6]
+            print(mountpoint_of_partition)
+        else:
+            print("Partition not mounted")
+
+    unmount_status = subprocess.run(["umount", arguments["partition"]], capture_output=True, text=True)
+
+    if umount_status.returncode != 0:
+        print(umount_status.stderr)
+        print("Aborting...")
+    
+    #TODO: 
+    #   -Find out whether partitioning logical volumes and physical volumes has a 
+    #   different process.
+    #   Note: It probably does, logical volume I think would mean you can skip the mounting/unmounting
+    #   process. This will change up the program a bit.
+
+
 
 def main():
     uid = os.getuid()
@@ -143,13 +193,11 @@ def main():
     #If I finish making this script I'm gonna have to improve
     #a lot of stuff. And make a better way to query for missing
     #packages
-    necessary_binaries = {"fdisk": False, "util-linux": False}
+    necessary_binaries = {"sfdisk": "fdisk", "lsblk": "util-linux"}
 
     for binary in necessary_binaries:
-        necessary_binaries[binary] = check_binary_exists(binary) 
-
-        if necessary_binaries[binary] == False:
-           install_binary(binary)
+        if check_binary_exists(binary) == False:
+           install_binary(necessary_binaries[binary])
 
     arguments_to_run = {"partition": partition, "backup": backup, "grow": partition_increase, "shrink": partition_decrease} 
 

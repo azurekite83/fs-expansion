@@ -1,4 +1,4 @@
-import sys, os, argparse, csv, subprocess
+import sys, os, argparse, csv, subprocess, re
 from os import path
 
 #Use sfdisk to give commands to change partitions
@@ -127,51 +127,125 @@ def install_binary(binary):
             print("Unable to identify distro, aborting...")
             exit(1)
 
+def parse_table(command):
+    parsed_command = command.split()
+    row_data = None
+
+    try:
+        command_results = subprocess.run(parsed_command, capture_output=True, text=True).stdout.splitlines()
+        row_data = [line.split() for line in command_results]
+        break
+    except:
+        print("Command execution failed.")
+
+    return row_data
+
+def get_columns(table, column_numbers):
+    columns_wanted = []
+    index = 0
+
+    for row in table:
+        columns_wanted.append([])
+        for number in column_numbers:
+            #For lsblk, some partitions don't have mountpoints
+            #If they do the row length is 7
+            try:
+                columns_wanted[index].append(row[number])
+                break
+            except:
+                columns_wanted[index].append(None)
+        index += 1
+
+
 def run(arguments):
     #find what partitions mount point is
     #Initially I thought that umount syntax
     #required you to provide the mountpoint to unmount
-    #
+    
     #I was mistaken. I don't feel like deleting this code though.
-
-    lsblk_results = subprocess.run(["lsblk"], capture_output=True, text=True).stdout.splitlines()
-    row_data = [line.split() for line in lsblk_results]
+    
+    #TODO: Add functionality to close any open processes if mount point is active
+    lsblk_table = parse_table("lsblk")
+    df_table = parse_table("df -B 1M")
 
     partition = arguments["partition"].removeprefix("/dev/")
-    selected_mountpoints = []
-
-    for row in row_data:
-        if len(row) < 7:
-            selected_mountpoints.append([row[0], None])
-        else:
-            selected_mountpoints.append([row[0], row[6]])
+    selected_mountpoints = get_columns(lsblk_table, [0, 5, 6])
+    filesystem_space = get_columns(df_table, [3])
 
     #umount partition
+
     #To remember for when we remount
     mountpoint_of_partition = None
+    type_of_partition = None
 
+    #See where partitions placement is in filesystem
+    partition_number_regex = re.compile("[0-9]{1}")
+    device_regex = re.compile("sd[a-z]{1}")
+
+    partition_number_found = partition_number_regex.search(arguments["partition"]).group()
+    device_found = device_regex.search(arguments["partition"]).group()
+
+    #If they opted for an increase in partition size
+    #check if there is enough space
+    
+    if arguments["grow"] != None:
+       #Compare size increase to space available 
+
+    #TODO: Turn this loop into a function if it gets repeated
     for row in selected_mountpoints:
         if arguments["partition"] in row[0] and row[6] != None:
             mountpoint_of_partition = row[6]
-            print(mountpoint_of_partition)
+            type_of_partition = row[5]
         else:
-            print("Partition not mounted")
+            print("Partition not mounted or invalid partition. Aborting...")
+            exit(1)
 
-    unmount_status = subprocess.run(["umount", arguments["partition"]], capture_output=True, text=True)
+    #There is a ton of types that lsblk can output
+    #Right now basic functionality only supports lvm and part
+    if type_of_partition == "part":
+        #Unmount partition
+        #Using -l flag for lazy unmount just in case there are
+        #any processes still running on the partition
+        unmount_status = subprocess.run(["umount", "-l", arguments["partition"]], capture_output=True, text=True)
+        
+        if unmount_status.returncode != 0:
+            print(unmount_status.stderr)
+            print("Aborting...")
+            exit(1)
 
-    if umount_status.returncode != 0:
-        print(umount_status.stderr)
-        print("Aborting...")
-    
-    #TODO: 
-    #   -Find out whether partitioning logical volumes and physical volumes has a 
-    #   different process.
-    #   Note: It probably does, logical volume I think would mean you can skip the mounting/unmounting
-    #   process. This will change up the program a bit.
+        
+        #Find highest partition number
+        highest_partition = None
+        
+        for row in selected_mountpoints:
+            if device in row[0]:
+                current_partition_number = partition_number_regex.search(row[0]).group()
 
+                if current_partition_number > partition_number_found:
+                    highest_partition = current_partition_number
+
+    elif type_of_partition == "lvm":
+        #Do logical partition things
+    else:
+        print("Type of partition not currently supported. Aborting...")
+        exit(1)
 
 
 def main():
+
+    print("""
+            WARNING: IF THERE ARE ANY RUNNING PROCESSES IN THE PARTITION YOU ARE TRYING TO CHANGE
+            YOU **MUST** CLOSE ANY ACTIVE PROCESSES OTHERWISE THIS COULD POTENTIALLY MESS UP YOUR
+            PARTITION
+          """)
+
+    user_acknowledgement = input("Do you still want to continue? (yes/y/no/n): ")
+
+    if user_acknowledgement == "yes" or user_acknowledgement == "y":
+        break
+    else:
+        exit(0)
+
     uid = os.getuid()
 
     #First, check if running as root
@@ -193,7 +267,10 @@ def main():
     #If I finish making this script I'm gonna have to improve
     #a lot of stuff. And make a better way to query for missing
     #packages
-    necessary_binaries = {"sfdisk": "fdisk", "lsblk": "util-linux"}
+    
+    #TODO: -Change program to install util-linux if it doesn't have it
+    #      -Make file for dependencies instead of dictionary 
+    necessary_binaries = {"sfdisk": "fdisk", "lsblk": "util-linux", "df": "coreutils"}
 
     for binary in necessary_binaries:
         if check_binary_exists(binary) == False:

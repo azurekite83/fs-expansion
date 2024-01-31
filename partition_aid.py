@@ -1,13 +1,6 @@
 import sys, os, argparse, csv, subprocess, re
 from os import path
 
-#Use sfdisk to give commands to change partitions
-#Arguments:
-#   -logical/physical partition
-#   -which partition
-#   -shrink or grow partition
-#   -backup before action
-
 def parse_arguments(args):
     parser = argparse.ArgumentParser(description="A wrapper around bash scripts to simplify partition changes")
     parser.add_argument("partition", help="Ex. /dev/sda{1-5} or /dev/mapper/")

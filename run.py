@@ -2,7 +2,7 @@ import re, subprocess
 from helpers import fetch_element, parse_table, get_columns, check_for_space
 
 def grow_partition(partition, partition_increase):
-
+    print("Placeholder")
 
 def run_program(arguments):
     #find what partitions mount point is
@@ -19,7 +19,6 @@ def run_program(arguments):
     df_parsed = get_columns(df_table, [0, 3])
 
     partition = arguments["partition"].removeprefix("/dev/")
-    #umount partition
 
     #To remember for when we remount
     mountpoint_of_partition = fetch_element(lsblk_parsed, 0, 6, partition)
@@ -31,6 +30,8 @@ def run_program(arguments):
     #There is a ton of types that lsblk can output
     #Right now basic functionality only supports lvm and part
 
+    #Start and end sector list for during operations
+    start_and_end_sectors = []
     
     if arguments["grow"] != None and type_of_partition == "part":
         #Compare size increase to space available 
@@ -44,8 +45,8 @@ def run_program(arguments):
         partition_number_regex = re.compile("[0-9]{1}")
         device_regex = re.compile("sd[a-z]{1}")
 
-        partition_number_found = partition_number_regex.search(arguments["partition"])
-        device_found = device_regex.search(arguments["partition"])
+        partition_number_found = partition_number_regex.search(partition)
+        device_found = device_regex.search(partition)
 
         if partition_number_found == None or device_found == None:
             print("Invalid argument for partition. Aborting...")
@@ -61,10 +62,7 @@ def run_program(arguments):
             print("Not enough space for operation. Aborting...")
             exit(1)
         
-        #Unmount partitions
-        #Using -l flag for lazy unmount just in case there are
-        #any processes still running on the partition
-
+        
         #Find highest partition number
         highest_partition = None
         
@@ -75,15 +73,28 @@ def run_program(arguments):
                 if current_partition_number > partition_number_found:
                     highest_partition = current_partition_number
 
-        for i in range(highest_partition, -1, partition_number_found):
-            unmount_status = subprocess.run(["umount", "-l", f"{device_found}{i}"]], capture_output=True, text=True)
+        for i in range(highest_partition, partition_number_found, -1):
+            #Unmount partitions
+            #Using -l flag for lazy unmount just in case there are
+            #any processes still running on the partition
+
+            unmount_status = subprocess.run(["umount", "-l", f"{partition}"], capture_output=True, text=True)
         
             if unmount_status.returncode != 0:
                 print(unmount_status.stderr)
                 print("Aborting...")
                 exit(1)
 
-        
+            #Delete partition
+            removal_status = subprocess.run(["sfdisk", "--delete", f"{device_found}", f"{i}"], capture_output=True, text=True)
+            
+            if removal_status.returncode != 0:
+                print(removal_status.stderr)
+                print("Aborting...")
+                exit(1)
+                
+            #Remount with adjusted start and end blocks
+            
         
         #Begin moving partitions
 

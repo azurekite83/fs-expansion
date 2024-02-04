@@ -61,18 +61,10 @@ def run_program(arguments):
             print("Not enough space for operation. Aborting...")
             exit(1)
         
-        #Unmount partition
+        #Unmount partitions
         #Using -l flag for lazy unmount just in case there are
         #any processes still running on the partition
 
-        unmount_status = subprocess.run(["umount", "-l", arguments["partition"]], capture_output=True, text=True)
-        
-        if unmount_status.returncode != 0:
-            print(unmount_status.stderr)
-            print("Aborting...")
-            exit(1)
-
-        
         #Find highest partition number
         highest_partition = None
         
@@ -83,8 +75,19 @@ def run_program(arguments):
                 if current_partition_number > partition_number_found:
                     highest_partition = current_partition_number
 
+        for i in range(highest_partition, -1, partition_number_found):
+            unmount_status = subprocess.run(["umount", "-l", f"{device_found}{i}"]], capture_output=True, text=True)
+        
+            if unmount_status.returncode != 0:
+                print(unmount_status.stderr)
+                print("Aborting...")
+                exit(1)
+
+        
+        
         #Begin moving partitions
- 
+
+         
     
                     
     elif type_of_partition == "lvm":

@@ -1,7 +1,7 @@
 import sys, os
-import args
-import environment
-import run
+from src.partitionaid import args
+from src.partitionaid import environment
+from src.partitionaid import run
 
 from os import path
 
@@ -15,6 +15,7 @@ def main():
 
     user_acknowledgement = input("Do you still want to continue? (yes/y/no/n): ")
 
+    #TODO: Improve *this*
     if user_acknowledgement == "yes" or user_acknowledgement == "y":
         print("Continuing...")
     else:

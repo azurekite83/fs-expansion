@@ -1,5 +1,5 @@
 import re, subprocess
-from helpers import fetch_element, parse_table, get_columns, check_for_space
+from .helpers import fetch_element, parse_table, get_columns, check_for_space, execute_command
 
 def grow_partition(partition, partition_increase):
     print("Placeholder")
@@ -12,10 +12,11 @@ def run_program(arguments):
     #I was mistaken. I don't feel like deleting this code though.
     
     #TODO: Add functionality to close any open processes if mount point is active
-    lsblk_table = parse_table("lsblk -b")
+    #      -Make get_column functions use named fields and not magic numbers
+    lsblk_table = parse_table("lsblk -b --list -o +START")
     df_table = parse_table("df -B 1M")
 
-    lsblk_parsed = get_columns(lsblk_table, [0, 3, 5, 6])
+    lsblk_parsed = get_columns(lsblk_table, [0, 3, 5, 6, 7])
     df_parsed = get_columns(df_table, [0, 3])
 
     partition = arguments["partition"].removeprefix("/dev/")
@@ -31,8 +32,10 @@ def run_program(arguments):
     #Right now basic functionality only supports lvm and part
 
     #Start and end sector list for during operations
-    start_and_end_sectors = []
     
+        
+    #Get start and end sectors for all partitions of device
+
     if arguments["grow"] != None and type_of_partition == "part":
         #Compare size increase to space available 
         #Note: This is using unallocated space at the end of the device to move partitions,
@@ -77,24 +80,23 @@ def run_program(arguments):
             #Unmount partitions
             #Using -l flag for lazy unmount just in case there are
             #any processes still running on the partition
+            partition_start_sector = int(fetch_element(lsblk_parsed, 0, 7, partition))
+            new_partition_start = partition_start_sector + arguments["grow"]
+            #Size of partition in Mib
+            size_of_partition = int(fetch_element(lsblk_parsed, 0, 3, partition)) / (1024 ** 2)
+            
+            #If --backup is included
+            if arguments["backup"] == True:
+                execute_command(f"sfdisk --dump {arguments['partition'] > part.dump") 
 
-            unmount_status = subprocess.run(["umount", "-l", f"{partition}"], capture_output=True, text=True)
+            execute_command("umount -l {partition}")
         
-            if unmount_status.returncode != 0:
-                print(unmount_status.stderr)
-                print("Aborting...")
-                exit(1)
-
             #Delete partition
-            removal_status = subprocess.run(["sfdisk", "--delete", f"{device_found}", f"{i}"], capture_output=True, text=True)
+            execute_command("sfdisk --delete {device_found}{i}")
             
-            if removal_status.returncode != 0:
-                print(removal_status.stderr)
-                print("Aborting...")
-                exit(1)
-                
-            #Remount with adjusted start and end blocks
-            
+            #Create partition with adjusted start and end blocks
+            execute_command(f"echo -e 'size={size_of_partition}M, start={partition_start_sector}M' | sfdisk {arguments['partition']")
+            #Adjust start and end blocks
         
         #Begin moving partitions
 

@@ -1,4 +1,4 @@
-import subprocess
+import subprocess, sys
 
 def parse_table(command):
     parsed_command = list(command.split())
@@ -63,4 +63,14 @@ def check_for_space(lsblk_parsed, df_parsed, partition, device, size_increase, r
         print("Invalid size change. Aborting...")
         return False
 
+def execute_command(command):
+    command_list = list(command.split())
+    command_status = subprocess.run(command_list, capture_output=True, text=True, check=True)
 
+    try:
+        command_status.check_returncode()
+    except:
+        print(f"Failed command execution with: {command_status.stderr}") 
+        print("Aborting...")
+        sys.exit(1)
+        

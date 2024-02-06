@@ -1,4 +1,4 @@
-import subprocess, sys
+import subprocess, sys, re
 
 def parse_table(command):
     parsed_command = list(command.split())
@@ -8,7 +8,8 @@ def parse_table(command):
         command_results = subprocess.run(parsed_command, capture_output=True, text=True).stdout.splitlines()
         row_data = [line.split() for line in command_results]
     except:
-        print("Command execution failed.")
+        print("This should never happen.")
+        sys.exit(1)
 
     return row_data
 
@@ -42,26 +43,31 @@ def fetch_element(table, search_column, wanted_column, query):
 
     return result
 
-def check_for_space(lsblk_parsed, df_parsed, partition, device, size_increase, regex_result): 
-    available_space = (fetch_element(lsblk_parsed, 0, 3, device) / (1024**2)) - fetch_element(df_parsed, 0, 3, partition)
-
+def check_for_space(available_space, size_increase): 
     size_change_regex = re.compile("[0-9]+")
-    size_change_found = size_change_regex.match(size_increase)
+    size_change_found = size_change_regex.match(size_increase).group()
+    size_change_actual = int(size_change_found)
+    available_space_actual = int(available_space)
 
     try:
-        size_change_found = regex_result.group()
         byte_suffix = size_increase.removeprefix(size_change_found)
 
         if byte_suffix == "G" or byte_suffix == "g":
-            size_change_found *= 1024
+            size_change_actual *= 1024
         elif byte_suffix == "K" or byte_suffix == "k":
-            size_change_found /= 1024
-        else:
+            size_change_actual /= 1024
+        elif byte_suffix != "M" and byte_suffix != "m":
             print("Byte suffix not currently supported. Aborting...")
             return False
     except:
-        print("Invalid size change. Aborting...")
+        print("Invalid input. Aborting...")
         return False
+
+    if size_change_actual > available_space_actual:
+        print("Not enough space to perform operation. Aborting...")
+        return False
+    else:
+        return True
 
 def execute_command(command):
     command_list = list(command.split())

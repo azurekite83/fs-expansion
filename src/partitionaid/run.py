@@ -31,11 +31,6 @@ def run_program(arguments):
     #There is a ton of types that lsblk can output
     #Right now basic functionality only supports lvm and part
 
-    #Start and end sector list for during operations
-    
-        
-    #Get start and end sectors for all partitions of device
-
     if arguments["grow"] != None and type_of_partition == "part":
         #Compare size increase to space available 
         #Note: This is using unallocated space at the end of the device to move partitions,
@@ -59,7 +54,8 @@ def run_program(arguments):
             device_found = device_found.group()
         
         #check if there is enough space
-        is_space_available = check_for_space(lsblk_parsed, df_parsed, device_found, partition, arguments["grow"]) 
+        available_space = (fetch_element(lsblk_parsed, 0, 3, device) / (1024**2)) - fetch_element(df_parsed, 0, 3, partition)
+        is_space_available = check_for_space(available_space, arguments["grow"]) 
 
         if not is_space_available:
             print("Not enough space for operation. Aborting...")

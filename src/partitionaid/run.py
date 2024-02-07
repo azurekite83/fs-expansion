@@ -13,10 +13,10 @@ def run_program(arguments):
     
     #TODO: Add functionality to close any open processes if mount point is active
     #      -Make get_column functions use named fields and not magic numbers
-    lsblk_table = parse_table("lsblk -b --list -o +START")
+    lsblk_table = parse_table("lsblk -b --list -o +START,FSAVAIL")
     df_table = parse_table("df -B 1M")
 
-    lsblk_parsed = get_columns(lsblk_table, [0, 3, 5, 6, 7])
+    lsblk_parsed = get_columns(lsblk_table, [0, 3, 5, 6, 7, 8])
     df_parsed = get_columns(df_table, [0, 3])
 
     partition = arguments["partition"].removeprefix("/dev/")
@@ -54,7 +54,7 @@ def run_program(arguments):
             device_found = device_found.group()
         
         #check if there is enough space
-        available_space = (fetch_element(lsblk_parsed, 0, 3, device) / (1024**2)) - fetch_element(df_parsed, 0, 3, partition)
+        available_space = (int(fetch_element(lsblk_parsed, 0, 8, device_found)) / (1024**2)) 
         is_space_available = check_for_space(available_space, arguments["grow"]) 
 
         if not is_space_available:
@@ -79,11 +79,11 @@ def run_program(arguments):
             partition_start_sector = int(fetch_element(lsblk_parsed, 0, 7, partition))
             new_partition_start = partition_start_sector + arguments["grow"]
             #Size of partition in Mib
-            size_of_partition = int(fetch_element(lsblk_parsed, 0, 3, partition)) / (1024 ** 2)
+            size_of_partition = (int(fetch_element(lsblk_parsed, 0, 3, partition)) / (1024 ** 2))
             
             #If --backup is included
             if arguments["backup"] == True:
-                execute_command(f"sfdisk --dump {arguments['partition'] > part.dump") 
+                execute_command(f"sfdisk --dump {arguments['partition']} > part.dump") 
 
             execute_command("umount -l {partition}")
         
@@ -91,7 +91,7 @@ def run_program(arguments):
             execute_command("sfdisk --delete {device_found}{i}")
             
             #Create partition with adjusted start and end blocks
-            execute_command(f"echo -e 'size={size_of_partition}M, start={partition_start_sector}M' | sfdisk {arguments['partition']")
+            execute_command(f"echo -e 'size={size_of_partition}M, start={partition_start_sector}M' | sfdisk {arguments['partition']}")
             #Adjust start and end blocks
         
         #Begin moving partitions

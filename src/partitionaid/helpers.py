@@ -47,7 +47,6 @@ def check_for_space(available_space, size_increase):
     size_change_regex = re.compile("[0-9]+")
     size_change_found = size_change_regex.match(size_increase).group()
     size_change_actual = int(size_change_found)
-    available_space_actual = int(available_space)
 
     try:
         byte_suffix = size_increase.removeprefix(size_change_found)
@@ -63,7 +62,7 @@ def check_for_space(available_space, size_increase):
         print("Invalid input. Aborting...")
         return False
 
-    if size_change_actual > available_space_actual:
+    if size_change_actual > available_space:
         print("Not enough space to perform operation. Aborting...")
         return False
     else:

@@ -46,7 +46,7 @@ def test_case_pass():
 
 
     for case in cases:
-        results.append(check_for_space("500000", case))
+        results.append(check_for_space(500000, case))
 
     assert results == [True, True, True, True]
 

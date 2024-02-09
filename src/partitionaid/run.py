@@ -42,9 +42,11 @@ def run_program(arguments):
         #See where partitions placement is in filesystem
         partition_number_regex = re.compile("[0-9]{1}")
         device_regex = re.compile("sd[a-z]{1}")
+        size_increase_regex = re.compile("[0-9]+")
 
         partition_number_found = partition_number_regex.search(partition)
         device_found = device_regex.search(partition)
+        size_increase_found = size_increase_regex.match(arguments["grow"])
 
         if partition_number_found == None or device_found == None:
             print("Invalid argument for partition. Aborting...")
@@ -73,32 +75,48 @@ def run_program(arguments):
                     highest_partition = current_partition_number
 
         for i in range(highest_partition, partition_number_found, -1):
-            #Unmount partitions
-            #Using -l flag for lazy unmount just in case there are
-            #any processes still running on the partition
-            partition_start_sector = int(fetch_element(lsblk_parsed, 0, 7, partition))
-            new_partition_start = partition_start_sector + arguments["grow"]
+            current_partition = f"{device_found}{i}"
+            partition_start_sector = int(fetch_element(lsblk_parsed, 0, 7, current_partition)) / (1024 ** 2)
+            byte_suffix = arguments["grow"].removeprefix(size_increase_found)
+
+            if byte_suffix == "G" or byte_suffix == "g":
+                size_increase_found *= 1024 
+
+            #New partition start sector
+            new_partition_start = partition_start_sector + size_increase_found
             #Size of partition in Mib
-            size_of_partition = (int(fetch_element(lsblk_parsed, 0, 3, partition)) / (1024 ** 2))
+            size_of_partition = (int(fetch_element(lsblk_parsed, 0, 3, current_partition)) / (1024 ** 2))
+            
+            if current_partition == partition:
+                total_size_increase = size_of_partition + size_increase_found
+                execute_command(f"umount -l {arguments['partition']}")
+                execute_command(f"sfdisk --delete {arguments['partition']}")
+                execute_command(f"echo -e 'size={total_size_increase}M start={partition_start_sector}M' | sfdisk /dev/{device_found}")
+            #TODO: Figure out remounting stuff
             
             #If --backup is included
             if arguments["backup"] == True:
                 execute_command(f"sfdisk --dump {arguments['partition']} > part.dump") 
 
-            execute_command("umount -l {partition}")
+            #Unmount partitions
+
+            #Using -l flag for lazy unmount just in case there are
+            #any processes still running on the partition
+            execute_command(f"umount -l /dev/{current_partition}")
         
             #Delete partition
-            execute_command("sfdisk --delete {device_found}{i}")
+            execute_command(f"sfdisk --delete {current_partition}")
             
             #Create partition with adjusted start and end blocks
-            execute_command(f"echo -e 'size={size_of_partition}M, start={partition_start_sector}M' | sfdisk {arguments['partition']}")
-            #Adjust start and end blocks
+            #TODO: Test on VM because I don't know what order partitions are created in
+            execute_command(f"echo -e 'size={size_of_partition}M, start={new_partition_start}M' | sfdisk /dev/{device_found}")
+            
+            #TODO: Remount partition if it was mounted
+            #      -Forgot that some partitions have flags and stuff, gotta check for those :)))))
         
-        #Begin moving partitions
-
-         
-    
-                    
+        #resize partition to be increased
+        
+        
     elif type_of_partition == "lvm":
         #Do logical partition things
         print("placeholder")

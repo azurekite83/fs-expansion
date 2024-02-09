@@ -1,5 +1,5 @@
 import re, subprocess
-from .helpers import fetch_element, parse_table, get_columns, check_for_space, execute_command
+from src.partitionaid.helpers import fetch_element, parse_table, get_columns, check_for_space, execute_command
 
 def grow_partition(partition, partition_increase):
     print("Placeholder")

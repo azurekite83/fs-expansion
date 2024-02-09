@@ -1,4 +1,4 @@
-from environment import check_binary_exists, install_binary
+from src.partitionaid.environment import check_binary_exists, install_binary
 
 # *** def check_binary_exists(): ***
 

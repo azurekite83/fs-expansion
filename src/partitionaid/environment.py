@@ -1,6 +1,6 @@
 import os, csv, subprocess
 from os import path
-from .packages import retrieve_packages
+from src.partitionaid.packages import retrieve_packages
 
 def check_binary_exists(binary_required):
     #see if sfdisk util exists

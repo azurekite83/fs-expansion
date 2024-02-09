@@ -1,4 +1,4 @@
-from helpers import parse_table, get_columns, fetch_element, check_for_space, execute_command
+from src.partitionaid.helpers import parse_table, get_columns, fetch_element, check_for_space, execute_command
 import subprocess
 import pytest
 

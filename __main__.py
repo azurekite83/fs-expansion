@@ -43,10 +43,9 @@ def main():
     #a lot of stuff. And make a better way to query for missing
     #packages
     
-    #TODO: -Change program to install util-linux if it doesn't have it
-    #      -Make file for dependencies instead of dictionary 
+    #TODO: -Make file for dependencies instead of dictionary 
 
-    necessary_binaries = {"sfdisk": "fdisk", "lsblk": "util-linux", "df": "coreutils"}
+    necessary_binaries = {"sfdisk": "fdisk", "lsblk": "util-linux"}
 
     for binary in necessary_binaries:
         if environment.check_binary_exists(binary) == False:

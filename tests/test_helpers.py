@@ -7,7 +7,7 @@ import pytest
 def test_pass_a():
     passing_command = "lsblk -b"
     
-    assert execute_command(passing_command) == None
+    assert execute_command(passing_command) is None
 
 def test_invalid_command():
     failing_command = "jibberishsh"
@@ -32,13 +32,13 @@ def test_invalid_syntax():
 # *** def check_for_space(): ***
 
 def test_pass_b():
-    assert check_for_space(5000, "500M") == True
+    assert check_for_space(5000, "500M") is True
 
 def test_no_space():
-    assert check_for_space(50, "500M") == False
+    assert check_for_space(50, "500M") is False
 
 def test_wrong_suffix():
-    assert check_for_space(5000, "500P") == False
+    assert check_for_space(5000, "500P") is False
 
 def test_case_pass():
     cases = ["200G", "200g", "200K", "200k"]
@@ -100,7 +100,7 @@ def test_none_in_row():
     data = [["a", "b", "c", "d"],
             ["1 2", "3 4", "5 6"]]
 
-    assert fetch_element(data, 0, 3, "1 2") == None
+    assert fetch_element(data, 0, 3, "1 2") is None
 
 
 

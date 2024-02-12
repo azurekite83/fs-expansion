@@ -1,4 +1,5 @@
 .venv
-test_fs_expansion.py
 __pycache__
 .pytest_cache
+partition_aid.egg*
+build/

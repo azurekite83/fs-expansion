@@ -1,8 +1,0 @@
-distribution,pkg-manager,syntax
-ubuntu,apt dpkg,"apt install,dpkg -i"
-debian,apt dpkg,"apt install,dpkg -i"
-arch,pacman,pacman -S
-fedora,dnf yum,"dnf install,yum install"
-opensuse,zypper,zypper install
-rhel,yum,yum install
-

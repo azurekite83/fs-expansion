@@ -2,5 +2,34 @@
 addopts = [
         "--import-mode=importlib",
 ]
-
 pythonpath = "."
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "partition_aid"
+version = "0.0.1"
+authors = [
+  { name="Sean Walters", email="azurekite83@gmail.com" },
+]
+description = "A wrapper around bash partitioning commands that aims to simplify the partitioning process on Linux systems"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+partition_aid = "partitionaid.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/azurekite83/partition-aid"
+Issues = "https://github.com/azurekite83/partition-aid/issues"
+

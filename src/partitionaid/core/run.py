@@ -42,7 +42,7 @@ def run_program(arguments):
         grow_physical_partition(lsblk_parsed, arguments["partition"], arguments["grow"], arguments["backup"])
         
     elif type_of_partition == "lvm":
-        
+        #Do logical partition things
         print("placeholder")
     else:
         print("Type of partition not currently supported. Aborting...")

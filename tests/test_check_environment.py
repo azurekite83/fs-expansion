@@ -16,7 +16,7 @@ def test_non_existent_binary():
 
 @pytest.mark.skipif(sys.platform.startswith("win32") == True, reason="Not currently compatible with Windows.")
 def test_distro_arch(monkeypatch):
-    monkeypatch.chdir("src/partitionaid/core")
+    monkeypatch.chdir("src/partitionaid")
     
     assert find_distro_commands("arch") == ["pacman -S"]
 # *** def install_binary(): ***

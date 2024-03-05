@@ -4,3 +4,4 @@ __pycache__
 partition_aid.egg*
 build/
 .vimspector*
+dist/

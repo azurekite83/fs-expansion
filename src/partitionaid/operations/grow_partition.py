@@ -3,25 +3,35 @@ from partitionaid.operations.check_space import check_for_space
 import re
 
 def generate_sub_args(table, partition, partition_increase):
-    #TODO: Make regex list and iterate through all possible device suffixes/prefixes
-    #turn devices found into a list and check to see that the list isn't empty
+    #TODO: turn devices found into a list and check to see that the list isn't empty
+    #modify partition number regex to account for nvme and other drive naming conventions
     partition_number_regex = re.compile("[0-9]{1}")
-    physical_device_regex = re.compile("sd[a-z]{1}")
+    device_regex_list = [
+            re.compile("sd[a-z]{1}"),
+            re.compile("hd[a-z]{1}"), 
+            re.compile("nvme[0-5]{1}n[0-5]{1}"),
+            re.compile("\w+-\w+"),
+            re.compile("\w+")
+            ]
     size_increase_regex = re.compile("[0-9]+")
 
     partition_number_found = partition_number_regex.search(partition)
-    physical_device_found = physical_device_regex.search(partition)
+    device_found = None
     size_increase_found = size_increase_regex.match(partition_increase)
     highest_partition = None
     available_space = (int(fetch_element(table, 0, 8, device_found)) / (1024**2)) 
     byte_suffix = partition_increase.removeprefix(size_increase_found)
 
-    if partition_number_found == None or physical_device_found == None or size_increase_found == None:
-        return False
-    else:
-        partition_number_found = partition_number_found.group()
-        device_found = device_found.group()
-        size_increase_found = size_increase_found.group()
+    for i, regex_object in enumerate(device_regex_list):
+        regex_object.match(partition)
+        if regex_object is None:
+            continue
+        else:
+            device_found = regex_object.group()
+            break
+
+    partition_number_found = partition_number_found.group()
+    size_increase_found = size_increase_found.group()
 
     #Find highest partition number
     for row in table:
@@ -49,9 +59,6 @@ def grow_physical_partition(table, partition, partition_increase, backup):
     #but this can also be done if one of the partitions has enough space as well
 
     #TODO: Add functionality to search through partitions if there is not enough unallocated space
-    #       -Make regex pattern compilations better
-    #       -Add regex generation depending on type of partition
-    #       -Find a way to test this
     #       -Test on VM because I don't know what order partitions are created in
 
     #See where partitions placement is in filesystem
@@ -59,7 +66,7 @@ def grow_physical_partition(table, partition, partition_increase, backup):
     sub_arguments = generate_sub_args(table, partition, partition_increase)
 
     if sub_arguments == False:
-        print("Invalid argument for partition. Aborting...")
+        print("Error in sub_arguments(), aborting...")
         exit(1)
     
         
@@ -109,9 +116,27 @@ def grow_physical_partition(table, partition, partition_increase, backup):
                 execute_command(f"mount /dev/{current_partition} {current_mountpoint}")
 
 def grow_logical_partition(table, partition, partition_increase, backup):
-    #Will user input valid logical partition?
+    #Assumes that user has already accounted for size of physical partition and extends logical partition in volume group
+
+    #TODO: Separate function into accounting for physical volumes, and volume groups, not just logical volumes
+    #      Don't only check for space in physical partition, but check physical volume assigned as well
+    #      Figure out how to return row in table with right info 
+
+    # check to see if there is space
+    sub_arguments = generate_sub_args(table, partition, partition_increase)
+
+    if sub_arguments == False:
+        print("Error in sub_arguments(), aborting...")
+        exit(1)
     
+    #Check for space
+    is_space_available = check_for_space(sub_arguments["available_space"], partition_increase)
+
+    if is_space_available == False:
+        print("Not enough space for operation. Aborting...")
+        exit(1)
+
+    # Resize logical volume to fit physical volume
+    execute_command(f"lvresize -L +{partition_increase} --resizefs {partition}")
     
-    #How do i mock a partition being modified.
-    #
     return False
